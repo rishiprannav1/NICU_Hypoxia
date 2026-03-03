@@ -48,6 +48,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [predictions, setPredictions] = useState<Record<string, PredictionResponse>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [quotaError, setQuotaError] = useState(false);
   const [supabaseStatus, setSupabaseStatus] = useState<'connected' | 'error' | 'pending'>('pending');
   const [lastAnalysisTime, setLastAnalysisTime] = useState<Date | null>(null);
@@ -511,19 +512,33 @@ export default function App() {
           </div>
           <div className="h-8 w-px bg-slate-200" />
           <button 
+            disabled={isLoggingOut}
             onClick={async () => {
               try {
+                setIsLoggingOut(true);
+                setSession(null);
                 await supabase.auth.signOut();
+                // Manually clear any lingering supabase keys from local storage
+                Object.keys(localStorage).forEach(key => {
+                  if (key.includes('supabase.auth.token')) {
+                    localStorage.removeItem(key);
+                  }
+                });
+                // Force a clean state by reloading
+                window.location.href = window.location.origin;
               } catch (err) {
                 console.error('Error signing out:', err);
-              } finally {
-                setSession(null); // Always clear local session state
+                window.location.reload();
               }
             }}
-            className="p-2 hover:bg-red-50 rounded-full transition-colors text-slate-400 hover:text-red-600"
+            className={`p-2 rounded-full transition-all ${isLoggingOut ? 'bg-slate-100 opacity-50' : 'hover:bg-red-50 text-slate-400 hover:text-red-600'}`}
             title="Sign Out"
           >
-            <LogOut className="w-5 h-5" />
+            {isLoggingOut ? (
+              <div className="w-5 h-5 border-2 border-slate-300 border-t-indigo-600 rounded-full animate-spin" />
+            ) : (
+              <LogOut className="w-5 h-5" />
+            )}
           </button>
         </div>
       </header>
