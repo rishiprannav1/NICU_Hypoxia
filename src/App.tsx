@@ -84,6 +84,8 @@ export default function App() {
 
   // Initial Supabase Sync & Auth Listener
   useEffect(() => {
+    let subscription: { unsubscribe: () => void } | null = null;
+
     const initSupabase = async () => {
       try {
         // Check current session
@@ -91,22 +93,26 @@ export default function App() {
         setSession(currentSession);
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
           setSession(session);
         });
+        subscription = data.subscription;
 
         const { error } = await supabase.from('patients').select('count');
         if (error) throw error;
         setSupabaseStatus('connected');
         await syncPatients(INITIAL_PATIENTS);
-
-        return () => subscription.unsubscribe();
       } catch (err) {
         console.error('Supabase connection failed:', err);
         setSupabaseStatus('error');
       }
     };
+    
     initSupabase();
+
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
   }, []);
 
   // Initialize AudioContext on first user interaction or when needed
@@ -431,7 +437,7 @@ export default function App() {
             <Stethoscope className="text-white w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Hypox-Alert</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">NICU</h1>
             <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">Neonatal Digital Twin Dashboard</p>
           </div>
         </div>
@@ -505,7 +511,15 @@ export default function App() {
           </div>
           <div className="h-8 w-px bg-slate-200" />
           <button 
-            onClick={() => supabase.auth.signOut()}
+            onClick={async () => {
+              try {
+                await supabase.auth.signOut();
+              } catch (err) {
+                console.error('Error signing out:', err);
+              } finally {
+                setSession(null); // Always clear local session state
+              }
+            }}
             className="p-2 hover:bg-red-50 rounded-full transition-colors text-slate-400 hover:text-red-600"
             title="Sign Out"
           >

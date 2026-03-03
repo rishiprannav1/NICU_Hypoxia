@@ -1,5 +1,5 @@
 {
-  "name": "Hypox-Alert Neonatal Digital Twin",
+  "name": "NICU Neonatal Digital Twin",
   "description": "Real-time hypoxia prediction model for neonatal intensive care monitoring up to 7 neonates simultaneously.",
   "requestFramePermissions": []
 }
